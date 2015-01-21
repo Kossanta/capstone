@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/back" >
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:maxLines="2"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/activity_horizontal_space"
+        android:layout_marginRight="@dimen/activity_horizontal_space"
+        android:layout_marginTop="@dimen/activity_vertical_space"
+        android:text="Konstantinos Nikolakopoulos"
+        android:textAppearance="@android:style/TextAppearance.Medium" />
+
+    <TextView
+        android:id="@+id/age_title"
+        android:layout_width="wrap_content"
+    android:layout_height="30dp"
+        android:layout_below="@+id/name"
+        android:layout_marginLeft="@dimen/activity_horizontal_space"
+        android:layout_marginTop="@dimen/activity_vertical_space"
+        android:text="@string/age" />
+    
+      <TextView
+        android:id="@+id/age"
+        android:layout_width="wrap_content"
+   android:layout_height="30dp"
+        android:layout_below="@+id/name"
+        android:layout_toRightOf="@+id/age_title"
+        android:layout_marginLeft="@dimen/activity_horizontal_space"
+        android:layout_marginTop="@dimen/activity_vertical_space"/>
+      
+       <TextView
+        android:id="@+id/gender_title"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp"
+        android:layout_below="@+id/name"
+        android:layout_toRightOf="@+id/age"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="@dimen/activity_vertical_space"
+        android:text="@string/gender" />
+    
+      <TextView
+        android:id="@+id/gender"
+        android:layout_width="wrap_content"
+          android:layout_height="30dp"
+        android:layout_below="@+id/name"
+        android:layout_toRightOf="@+id/gender_title"
+        android:layout_marginLeft="@dimen/activity_horizontal_space"
+        android:layout_marginTop="@dimen/activity_vertical_space"/>
+
+</RelativeLayout>

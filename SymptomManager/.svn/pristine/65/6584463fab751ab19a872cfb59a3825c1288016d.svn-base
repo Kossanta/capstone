@@ -1,0 +1,64 @@
+package org.coursera.symptommanager.doctorUI;
+
+import org.coursera.symptommanager.Constants;
+import org.coursera.symptommanager.R;
+import org.coursera.symptommanager.patientUI.MainPatient;
+
+import android.app.Activity;
+import android.app.ActionBar.LayoutParams;
+import android.os.Bundle;
+import android.view.Gravity;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.GraphView.GraphViewData;
+import com.jjoe64.graphview.GraphViewSeries;
+import com.jjoe64.graphview.LineGraphView;
+
+public class SelectedPatient extends Activity {
+
+	RelativeLayout layout;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.patient_detail_data);
+		layout = (RelativeLayout) findViewById(R.id.layout);
+		// init example series data
+		// we use match parent to the width because is vertical scroll
+		RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+				800, 1000);
+		GraphViewSeries exampleSeries = new GraphViewSeries(
+				new GraphViewData[] { new GraphViewData(1, 0),
+						new GraphViewData(2, 1), new GraphViewData(3, 2),
+						new GraphViewData(4, 1) });
+
+		GraphView graphView = new LineGraphView(this // context
+				, "GraphViewDemo" // heading
+		);
+		graphView.setGravity(Gravity.CENTER_HORIZONTAL);
+		graphView.addSeries(exampleSeries); // data
+		graphView.setHorizontalLabels(new String[] { "2 days ago", "yesterday",
+				"today", "tomorrow" });
+		graphView.setVerticalLabels(new String[] { "high", "middle", "low" });
+		graphView.setScrollable(true);
+		// optional - activate scaling / zooming
+		graphView.setScalable(true);
+		layout.addView(graphView,params);
+
+	}
+	@Override
+	protected void onResume() {
+		super.onResume();
+		// check if screen is on if it is then show welcome message
+		if (Constants.USERNAME.equalsIgnoreCase("")) {
+
+		} else {
+			if (Constants.SCREEN_ON) {
+				Constants.showWelcomeMsg(SelectedPatient.this, layout);
+			}
+
+		}
+	}
+}

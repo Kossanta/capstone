@@ -1,0 +1,129 @@
+package org.coursera.symptommanager.objects;
+
+/**
+ * 
+ * This is the object that represents the doctor details and has the
+ * following parameters 
+ * long id : 			which is the id of the doctor detail object 
+ * String username : 	which is the username of the doctor 
+ * String name : 		which is the name of the doctor 
+ * String surname : 	which is the surname of the doctor 
+ * String email : 		which is the email of the doctor 
+ * String phone : 		which is the phone of the doctor 
+ * String regId : 		which is the registration id of the device of the doctor
+  */
+public class DoctorDetail {
+	
+	private String username;
+	private String name;
+	private String surname;
+	private String email;
+	private String phone;
+	private String regId;
+	private long id;
+
+	public DoctorDetail() {
+	}
+
+	public DoctorDetail(String username, String name, String surname, String email,
+			String phone, 
+			String regId, long id) {
+		super();
+		this.username = username;
+		this.name = name;
+		this.surname = surname;
+		this.email = email;
+		this.phone = phone;
+		this.regId = regId;
+		this.id = id;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getSurname() {
+		return surname;
+	}
+
+	public void setSurname(String surname) {
+		this.surname = surname;
+	}
+
+	public String getRegId() {
+		return regId;
+	}
+
+	public void setRegId(String regId) {
+		this.regId = regId;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+	public long getId() {
+		return id;
+	}
+
+	public void setId(long id) {
+		this.id = id;
+	}
+	public String getPhone() {
+		return phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
+
+
+	//
+	// /**
+	// * Two Videos will generate the same hashcode if they have exactly the
+	// same
+	// * values for their name, url, and duration.
+	// *
+	// */
+	// @Override
+	// public int hashCode() {
+	// // Google Guava provides great utilities for hashing
+	// return Objects.hashCode(name, url, duration);
+	// }
+	//
+	// /**
+	// * Two Videos are considered equal if they have exactly the same values
+	// for
+	// * their name, url, and duration.
+	// *
+	// */
+	// @Override
+	// public boolean equals(Object obj) {
+	// if (obj instanceof Video) {
+	// Video other = (Video) obj;
+	// // Google Guava provides great utilities for equals too!
+	// return Objects.equal(name, other.name)
+	// && Objects.equal(url, other.url)
+	// && duration == other.duration;
+	// } else {
+	// return false;
+	// }
+	// }
+
+}

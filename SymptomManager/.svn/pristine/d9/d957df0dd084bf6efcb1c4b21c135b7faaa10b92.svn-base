@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="black">#000000</color>
+     <color name="gray">#888888</color>
+    <color name="swipe_color_1">#000000</color>
+    <color name="swipe_color_2">#0000FF</color>
+    <color name="swipe_color_3">#FF0000</color>
+    <color name="swipe_color_4">#00FF00</color>
+    <color name="menu_color">#000000</color>
+       <color name="text_color">#000000</color>
+            <color name="main_color">#000000</color>
+    <color name="action_bar_color">#000000</color>
+
+</resources>

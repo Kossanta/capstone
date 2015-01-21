@@ -1,0 +1,414 @@
+package org.coursera.symptommanager.patientUI;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.coursera.symptommanager.Constants;
+import org.coursera.symptommanager.R;
+import org.coursera.symptommanager.objects.PatientDetail;
+
+import retrofit.RetrofitError;
+import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.DatePickerDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.SystemClock;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class EditProfile extends Activity {
+
+	// the long that will hold the patient id which is send with the intent
+	long patientID;
+	// the parameter id
+	String ID = "id";
+	// the dispayed date
+	String displayDate;
+	String selectedDate;
+	// Here we declare the array list that will hold the time between the
+	// patient will be notified min = 6 hours (4 times a day)
+	// max = 1 hour (24 times a day)
+	ArrayList<Integer> times;
+	// the patient profile object
+	PatientDetail profile;
+
+	// declare the views
+	EditText name;
+	EditText surname;
+	EditText email;
+	EditText phone;
+	Button dob;
+	Spinner notifyTime;
+
+	ProgressBar loading;
+	RelativeLayout layout;
+	// the time which the patient will be notified in a day (in hours) default 6
+	// hours = 4 times a day
+	int notificationTime = 0;
+	// the date of birth in mills
+	long birthDate = 0;
+	// the string with the error from the retrofit exception
+	String ERROR = "";
+	// the notification time in mills
+	long REFRESH_RATE; // One minute
+	// for e mail validation
+	Pattern patternObj;
+	Matcher matcherObj;
+	String regExpn = "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+
+		// if the delivered intent has the extra id get it and save it as
+		// doctorID
+		if (getIntent().hasExtra(ID)) {
+			patientID = getIntent().getLongExtra(ID, -1);
+
+		}
+		setContentView(R.layout.edit_profile_patient);
+		// set the name on the action bar
+		getActionBar().setTitle(getString(R.string.edit_profile));
+		// instantiate the views
+		layout = (RelativeLayout) findViewById(R.id.layout);
+		name = (EditText) findViewById(R.id.name);
+		surname = (EditText) findViewById(R.id.surname);
+		email = (EditText) findViewById(R.id.email);
+		phone = (EditText) findViewById(R.id.phone);
+		loading = (ProgressBar) findViewById(R.id.progressBar1);
+		loading.setVisibility(View.GONE);
+		notifyTime = (Spinner) findViewById(R.id.notifyTime);
+		dob = (Button) findViewById(R.id.dob);
+		dob.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// setup a date picker
+				createDatePicker();
+
+			}
+		});
+		notifyTime.setOnItemSelectedListener(new OnItemSelectedListener() {
+
+			@Override
+			public void onItemSelected(AdapterView<?> parent, View view,
+					int position, long id) {
+				notificationTime = times.get(position);
+
+			}
+
+			@Override
+			public void onNothingSelected(AdapterView<?> parent) {
+				notificationTime = 0;
+
+			}
+		});
+		setupTimesArray();
+		getPatientProfile();
+
+	}
+
+	private void getPatientProfile() {
+		new getProfile().execute();
+	}
+
+	public class getProfile extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				profile = Constants.svc.getProfilePatient(Constants.account
+						.getUsername());
+			} catch (final RetrofitError e) {
+				Constants.reportIssue(EditProfile.this, e.getMessage());
+				ERROR = e.getMessage();
+			}
+
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			loading.setVisibility(View.GONE);
+			layout.setClickable(true);
+			if (ERROR.equalsIgnoreCase("")) {
+				name.setText(profile.getName());
+				surname.setText(profile.getSurname());
+				email.setText(profile.getEmail());
+				phone.setText(profile.getPhone());
+				notifyTime.setAdapter(new MyAdapter(EditProfile.this,
+						android.R.layout.simple_spinner_item, 0, times));
+			} else {
+				ERROR = "";
+			}
+
+		}
+
+		@Override
+		protected void onPreExecute() {
+			loading.setVisibility(View.VISIBLE);
+			layout.setClickable(false);
+		}
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		android.view.MenuInflater inflater = getMenuInflater();
+
+		inflater.inflate(R.menu.edit_profile, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// get the id of the clicked item
+		int itemId = item.getItemId();
+		// get the id of the send button
+		int send = R.id.send;
+		if (itemId == send) {
+			// check if the fields are correct
+			if (checkForEmptyFields()) {
+				checkFields();
+			} else {
+
+			}
+
+			return true;
+		}
+
+		return super.onOptionsItemSelected(item);
+	}
+
+	public class updateProfile extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				profile = Constants.svc.updateProfilePatient(new PatientDetail(
+						profile.getUsername(), name.getText().toString(),
+						surname.getText().toString(), email.getText()
+								.toString(), phone.getText().toString(),
+						birthDate, profile.getGender(), profile
+								.getLastCheckIn(), profile.getIdDoctor(),
+						profile.getRegId(), profile.getId(), notificationTime,profile.getSeverePain(),profile.getModeratePain(),profile.getCantEat()));
+			} catch (final RetrofitError e) {
+				Constants.reportIssue(EditProfile.this, e.getMessage());
+				ERROR = e.getMessage();
+			}
+
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			loading.setVisibility(View.GONE);
+			layout.setClickable(true);
+			if (!ERROR.equalsIgnoreCase("")) {
+				ERROR = "";
+
+			} else {
+				REFRESH_RATE = notificationTime * (60 * 60 * 1000);
+				AlarmManager mAlarmManager = (AlarmManager) EditProfile.this
+						.getSystemService(ALARM_SERVICE);
+				Intent mNotificationReceiverIntent = new Intent(
+						EditProfile.this,
+						org.coursera.symptommanager.broadcastReceivers.AlarmHandler.class);
+				PendingIntent mNotificationReceiverPendingIntent = PendingIntent
+						.getBroadcast(EditProfile.this, 0,
+								mNotificationReceiverIntent, 0);
+				mAlarmManager.setRepeating(
+						AlarmManager.ELAPSED_REALTIME_WAKEUP,
+						SystemClock.elapsedRealtime() + REFRESH_RATE,
+						REFRESH_RATE, mNotificationReceiverPendingIntent);
+				Toast.makeText(EditProfile.this, R.string.ok_update_profile,
+						Toast.LENGTH_LONG).show();
+				finish();
+			}
+		}
+
+		@Override
+		protected void onPreExecute() {
+			loading.setVisibility(View.VISIBLE);
+			layout.setClickable(false);
+		}
+	}
+
+	private boolean checkForEmptyFields() {
+		if (email.getText().toString().equalsIgnoreCase("")
+				|| phone.getText().toString().equalsIgnoreCase("")) {
+			Toast.makeText(EditProfile.this, R.string.please_add_contact,
+					Toast.LENGTH_LONG).show();
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private void checkFields() {
+
+		if (isValidEmail(email.getText().toString()) && correctPhone()
+				&& birthDate != 0) {
+			// fetch all the patients that doesn't have an assigned doctor
+			new updateProfile().execute();
+		} else {
+			Toast.makeText(EditProfile.this,
+					R.string.email_or_phone_error_date, Toast.LENGTH_LONG)
+					.show();
+		}
+	}
+
+	private Boolean isValidEmail(String inputEmail) {
+		patternObj = Pattern.compile(regExpn);
+
+		matcherObj = patternObj.matcher(inputEmail);
+		if (matcherObj.matches()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	private boolean correctPhone() {
+
+		String phoneNumber = phone.getText().toString();
+		if (phoneNumber.startsWith("+")
+				|| phoneNumber.substring(0, 2).equalsIgnoreCase("00")) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	private void setupTimesArray() {
+		times = new ArrayList<Integer>();
+		times.add(6);
+		times.add(5);
+		times.add(4);
+		times.add(3);
+		times.add(2);
+		times.add(1);
+	}
+
+	private class MyAdapter extends ArrayAdapter<Integer> {
+
+		public MyAdapter(Context context, int resource, int textViewResourceId,
+				ArrayList<Integer> list) {
+			super(context, resource, textViewResourceId, list);
+		}
+
+		@Override
+		public View getDropDownView(int position, View convertView,
+				ViewGroup parent) {
+			LayoutInflater inflater = (LayoutInflater) EditProfile.this
+					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+			final View row = inflater.inflate(
+					android.R.layout.simple_dropdown_item_1line, parent, false);
+			final TextView tv = (TextView) row.findViewById(android.R.id.text1);
+			tv.setText(String.valueOf(times.get(position)));
+			return row;
+		}
+
+		@Override
+		public View getView(final int position, View convertView,
+				ViewGroup parent) {
+			// setup the item layout view
+			LayoutInflater inflater = (LayoutInflater) EditProfile.this
+					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+			final View row = inflater.inflate(
+					android.R.layout.simple_spinner_item, parent, false);
+			final TextView tv = (TextView) row.findViewById(android.R.id.text1);
+			tv.setText(String.valueOf(times.get(position)));
+
+			return row;
+		}
+	}
+
+	// this method creates a dialog fragment for date picking
+	private void createDatePicker() {
+		DialogFragment newFragment = new DatePickerFragment();
+		newFragment.show(getFragmentManager(), "datePicker");
+
+	}
+
+	static Calendar cal = Calendar.getInstance();
+
+	// Calendar calMin = null;
+	// Calendar calMax = null;
+
+	public class DatePickerFragment extends DialogFragment implements
+			DatePickerDialog.OnDateSetListener {
+		boolean mFirst = true;
+
+		@Override
+		public Dialog onCreateDialog(Bundle savedInstanceState) {
+			// Use the current date as the default date in the picker
+			final Calendar c = Calendar.getInstance();
+			int year = c.get(Calendar.YEAR);
+			int month = c.get(Calendar.MONTH);
+			int day = c.get(Calendar.DAY_OF_MONTH);
+			DatePickerDialog d = new DatePickerDialog(EditProfile.this, this,
+					year, month, day);
+			DatePicker dp = d.getDatePicker();
+			dp.setMaxDate(Calendar.getInstance().getTimeInMillis() - 1000);
+			// Create a new instance of DatePickerDialog and return it
+			return d;
+		}
+
+		public void onDateSet(DatePicker view, int year, int month, int day) {
+			if (mFirst) {
+				mFirst = false;
+				cal.set(year, month, day);
+				selectedDate = String.valueOf(year) + "-"
+						+ String.valueOf(month + 1) + "-" + String.valueOf(day);
+				Calendar c = Calendar.getInstance();
+				c.set(year, month, day);
+				String dayName = new SimpleDateFormat("EEE")
+						.format(c.getTime());
+				String monthName = new SimpleDateFormat("MMM").format(c
+						.getTime());
+				displayDate = dayName + " " + String.valueOf(day) + " "
+						+ monthName + " " + String.valueOf(year);
+				dob.setText(displayDate);
+				birthDate = c.getTimeInMillis();
+
+			}
+		}
+	}
+	@Override
+	protected void onResume() {
+		super.onResume();
+		// check if screen is on if it is then show welcome message
+		if (Constants.USERNAME.equalsIgnoreCase("")) {
+
+		} else {
+			if (Constants.SCREEN_ON) {
+				Constants.showWelcomeMsg(EditProfile.this, layout);
+			}
+
+		}
+	}
+}

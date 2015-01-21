@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <!-- the action bar menu that has add patient, remove patient, update profile -->
+    <item
+        android:id="@+id/about"
+        android:icon="@drawable/ic_action_about"
+        android:showAsAction="always"
+        android:title="@string/about"/>
+    <!-- the action bar menu that has add patient, remove patient, update profile -->
+    <item
+        android:id="@+id/call"
+        android:icon="@drawable/ic_action_call"
+        android:showAsAction="ifRoom"
+        android:title="@string/call_patient"/>
+    <!-- the action bar menu that has add patient, remove patient, update profile -->
+    <item
+        android:id="@+id/email"
+          android:icon="@drawable/ic_action_email"
+          android:showAsAction="ifRoom"
+        android:title="@string/email_patient"/>
+    <!-- the action bar menu that has add patient, remove patient, update profile -->
+     <item
+        android:id="@+id/add"
+        android:showAsAction="ifRoom"
+         android:icon="@drawable/ic_action_new"
+        android:title="@string/add_medication"/>
+    <item
+        android:id="@+id/remove"
+        android:showAsAction="ifRoom"
+         android:icon="@drawable/ic_action_remove"
+        android:title="@string/remove_medication"/>
+    <!-- the action bar menu that has add patient, remove patient, update profile -->
+     <item
+        android:id="@+id/logout"
+        android:showAsAction="never"
+        android:title="@string/logout"/>
+
+</menu>

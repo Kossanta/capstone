@@ -1,0 +1,1067 @@
+package org.coursera.symptommanager.doctorUI;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Locale;
+
+import org.coursera.symptommanager.Constants;
+import org.coursera.symptommanager.InternetStatus;
+import org.coursera.symptommanager.LoginScreenActivity;
+import org.coursera.symptommanager.R;
+import org.coursera.symptommanager.objects.CheckIn;
+import org.coursera.symptommanager.objects.DoctorDetail;
+import org.coursera.symptommanager.objects.Medication;
+import org.coursera.symptommanager.objects.PatientDetail;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import retrofit.RetrofitError;
+import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.AlertDialog;
+import android.app.Fragment;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences.Editor;
+import android.graphics.Color;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.SystemClock;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.interfaces.OnChartValueSelectedListener;
+
+public class PatientDataFragment extends Fragment {
+
+	// selected patient ID
+	long patientID;
+	// id parameter
+	String ID = "id";
+	// selected doctor ID
+	long doctorID;
+	// id parameter for doctor
+	String IDD = "idd";
+	// showing details parameter
+	String DETAILS = "details";
+	// declare the views
+	LineChart chart;
+	ListView checkInList;
+	ProgressBar loading;
+	ProgressBar progressBar1;
+	RelativeLayout layout;
+	// the progress bar inside the remove medication dialog
+	ProgressBar progressBar2;
+	// the list which will be inside the remove medication dialog
+	ListView list_medication;
+	// the checkInList adapter
+	MyAdapter adapter;
+	// the parameter for the username
+	String USERNAME = "username";
+	// the parameter for the password
+	String PASSWORD = "password";
+	// the parameter for the server
+	String SERVER = "server";
+	// the parameter for the role of the user
+	String ROLE = "role";
+
+	// the selected patient's profile
+	PatientDetail patientProfile;
+	// the doctor's profile
+	DoctorDetail doctorProfile;
+	// the array list with the patient's check ins
+	ArrayList<CheckIn> listOfCheckins;
+	// the array list with the patient's medications
+	ArrayList<Medication> medicationList;
+	// the selected medication from the docotr
+	Medication SELECTED_MEDICATION;
+	// the dialogs that will pop up after the click on the menu in each patient
+	AlertDialog addDialog;
+	AlertDialog removeDialog;
+	// the dialog that will pop up after selecting a checkin of the patient
+	AlertDialog checkinDialog;
+	// the string that will hold the result of a web service
+	String RESPONSE = "";
+	// the amount of alert the patient already registered
+	int amountOfAlerts = 0;
+	// the array list that will hold the time stamps of when the patient would
+	// like to be alarmed to make a checkin
+	ArrayList<Long> notificationTimeStamps;
+	// broadcast receiver that will fetch data of patient every X hours where X
+	// is the number the patient have selected in order to be notified for one
+	// check up + some convinient time to complete the check up
+	BroadcastReceiver fetchData;
+	// one day in milliseconds
+	long ONE_DAY = 24 * (60 * 60 * 1000);
+	AlarmManager mAlarmManager;
+	PendingIntent mNotificationReceiverPendingIntent1;
+
+	// when fragments is created
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		Bundle bundle = this.getArguments();
+		if (bundle != null) {
+			patientID = bundle.getLong(ID, 0);
+			doctorID = bundle.getLong(IDD, 0);
+		}
+		// that means that in the the fragment will create an
+		// option menu in the action bar
+		setHasOptionsMenu(true);
+		super.onCreate(savedInstanceState);
+	}
+
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup container,
+			Bundle savedInstanceState) {
+		ViewGroup rootView = (ViewGroup) inflater.inflate(
+				R.layout.patient_data_fragment, container, false);
+		notificationTimeStamps = new ArrayList<Long>();
+		layout = (RelativeLayout) rootView.findViewById(R.id.layout);
+		chart = (LineChart) rootView.findViewById(R.id.chart);
+		chart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+
+			@Override
+			public void onValueSelected(Entry e, int dataSetIndex) {
+				float f = e.getVal();
+				toastTheSelectedValue(f);
+			}
+
+			@Override
+			public void onNothingSelected() {
+
+			}
+		});
+		checkInList = (ListView) rootView.findViewById(R.id.check_in_list);
+		loading = (ProgressBar) rootView.findViewById(R.id.progressBar1);
+		loading.setVisibility(View.GONE);
+
+		getPatientProfileAndData();
+		return rootView;
+	}
+
+	@Override
+	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+		// Inflate the menu items for use in the action bar
+		inflater.inflate(
+				getResources().getIdentifier("patient_detail", "menu",
+						getActivity().getPackageName()), menu);
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// get the id of the clicked item
+		int itemId = item.getItemId();
+		// get the id of the send button
+		int about = R.id.about;
+		int call = R.id.call;
+		int email = R.id.email;
+		int add = R.id.add;
+		int remove = R.id.remove;
+		int logout = R.id.logout;
+
+		if (itemId == about) {
+			// flip the card in order to show the patient details
+			flipCard();
+			return true;
+		} else if (itemId == call) {
+			// fetch all the patients that doesn't have an assigned doctor
+			if (patientProfile == null
+					|| patientProfile.getPhone().equalsIgnoreCase("")|| patientProfile.getPhone().equalsIgnoreCase("-")) {
+				Toast.makeText(getActivity(),
+						getString(R.string.no_phone_patient), Toast.LENGTH_LONG)
+						.show();
+			} else {
+				Intent callIntent = new Intent(Intent.ACTION_CALL);
+				callIntent
+						.setData(Uri.parse("tel:" + patientProfile.getPhone()));
+				startActivity(callIntent);
+			}
+			return true;
+		} else if (itemId == email) {
+			if (patientProfile == null
+					|| patientProfile.getEmail().equalsIgnoreCase("")) {
+				Toast.makeText(getActivity(),
+						getString(R.string.no_email_patient), Toast.LENGTH_LONG)
+						.show();
+			} else {
+				Intent i = new Intent(Intent.ACTION_SEND);
+				i.setType("message/rfc822");
+				i.putExtra(Intent.EXTRA_EMAIL,
+						new String[] { patientProfile.getEmail() });
+				i.putExtra(Intent.EXTRA_SUBJECT,
+						"Email from Dr. " + doctorProfile.getName() + " "
+								+ doctorProfile.getSurname());
+				try {
+					startActivity(Intent.createChooser(i,
+							getString(R.string.send_email)));
+				} catch (android.content.ActivityNotFoundException ex) {
+					Toast.makeText(getActivity(),
+							getString(R.string.no_email_client),
+							Toast.LENGTH_SHORT).show();
+				}
+			}
+			return true;
+		} else if (itemId == add) {
+			// will open a dialog to prompt doctor to add a medication
+			// name and description and add it to the patient
+			addMedication();
+			return true;
+		} else if (itemId == remove) {
+			// will open a dialog with all the medications of the
+			// patient so the doctor can select which to remove
+			removeMedication();
+			return true;
+		} else if (itemId == logout) {
+			// erase shared preferences and clear static values and redirect
+			// user to login screen
+			Constants.USERNAME = "";
+			Constants.PASSWORD = "";
+			Constants.SERVER = "";
+			Constants.ROLE = "";
+			Constants.ID = -1;
+			Editor edit = Constants.settings.edit();
+			edit.putString(USERNAME, "");
+			edit.putString(PASSWORD, "");
+			edit.putString(SERVER, "");
+			edit.putString(ROLE, "");
+			edit.putLong(ID, -1);
+			edit.commit();
+
+			// clear back stack so the user can't navigate back
+			Intent intent = new Intent(getActivity(), LoginScreenActivity.class);
+			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+					| Intent.FLAG_ACTIVITY_CLEAR_TASK);
+			startActivity(intent);
+			Toast.makeText(getActivity(), getString(R.string.logged_out),
+					Toast.LENGTH_LONG).show();
+			return true;
+		} else {
+			return super.onOptionsItemSelected(item);
+		}
+
+	}
+
+	private void flipCard() {
+		if (SelectedPatient.mShowingBack) {
+			getFragmentManager().popBackStack();
+			return;
+		}
+
+		// Flip to the back.
+
+		SelectedPatient.mShowingBack = true;
+
+		// create an instance of the PatientData fragment
+		PatientDetailsFragment fragment = new PatientDetailsFragment();
+		// create a bundle and add inside the patient ID
+		// this bundle will be passed on the fragment
+		Bundle bundle = new Bundle();
+		bundle.putLong(ID, patientID);
+		bundle.putLong(IDD, doctorID);
+		fragment.setArguments(bundle);
+
+		// Create and commit a new fragment transaction that adds the
+		// fragment for the back of
+		// the card, uses custom animations, and is part of the fragment
+		// manager's back stack.
+
+		getFragmentManager().beginTransaction()
+
+		// Replace the default fragment animations with animator resources
+		// representing
+		// rotations when switching to the back of the card, as well as
+		// animator
+		// resources representing rotations when flipping back to the front
+		// (e.g. when
+		// the system Back button is pressed).
+				.setCustomAnimations(R.animator.card_flip_right_in,
+						R.animator.card_flip_right_out,
+						R.animator.card_flip_left_in,
+						R.animator.card_flip_left_out)
+
+				// Replace any fragments currently in the container view
+				// with a fragment
+				// representing the next page (indicated by the
+				// just-incremented currentPage
+				// variable).
+				.replace(R.id.container, fragment)
+
+				// Add this transaction to the back stack, allowing users to
+				// press Back
+				// to get to the front of the card.
+				.addToBackStack(null)
+
+				// Commit the transaction.
+				.commit();
+	}
+
+	private void getPatientProfileAndData() {
+		if (!InternetStatus.getInstance(
+				getActivity()).isOnline(getActivity())) {
+			Toast.makeText(getActivity(), R.string.no_internet,
+					Toast.LENGTH_LONG).show();
+
+		} else {
+		new getPatientData().execute();
+		}
+	}
+
+	private void getPatientData() {
+		if (!InternetStatus.getInstance(
+				getActivity()).isOnline(getActivity())) {
+			Toast.makeText(getActivity(), R.string.no_internet,
+					Toast.LENGTH_LONG).show();
+
+		} else {
+		new getData().execute();
+		}
+	}
+
+	public class getPatientData extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				patientProfile = Constants.svc.getPatientProfile(patientID);
+				doctorProfile = Constants.svc.getDoctorProfile(doctorID);
+				listOfCheckins = Constants.svc.getCheckins(patientID);
+			} catch (final RetrofitError e) {
+				Constants.reportIssue(getActivity(), e.getMessage());
+			}
+
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			try {
+				instantiateChart();
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+//			Toast.makeText(
+//					getActivity(),
+//					"If chart says No chart data available just toutch the chart to load them",
+//					Toast.LENGTH_SHORT).show();
+			loading.setVisibility(View.GONE);
+			layout.setClickable(true);
+			getActivity().getActionBar().setTitle(
+					getString(R.string.Dr) + " " + doctorProfile.getName()
+							+ " " + doctorProfile.getSurname());
+			getActivity().getActionBar().setSubtitle(
+					getString(R.string.overview) + " "
+							+ patientProfile.getName() + " "
+							+ patientProfile.getSurname());
+			adapter = new MyAdapter(getActivity(), getResources()
+					.getIdentifier("simple_list_item_1", "layout",
+							getActivity().getPackageName()), 0, listOfCheckins);
+			checkInList.setAdapter(adapter);
+			try {
+				fillNotificationTimeStamps(patientProfile.getNotifyTime());
+			} catch (JSONException e) {
+				
+				e.printStackTrace();
+			}
+			createAlarmManager();
+			fetchData = new BroadcastReceiver() {
+
+				@Override
+				public void onReceive(Context context, Intent intent) {
+					getPatientData();
+
+				}
+			};
+			getActivity().registerReceiver(fetchData,
+					new IntentFilter("org.coursera.systemmanager.fetch_data"));
+
+		}
+
+		@Override
+		protected void onPreExecute() {
+			loading.setVisibility(View.VISIBLE);
+			layout.setClickable(false);
+			listOfCheckins = new ArrayList<CheckIn>();
+		}
+	}
+
+	public class getData extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				listOfCheckins = Constants.svc.getCheckins(patientID);
+			} catch (final RetrofitError e) {
+				Constants.reportIssue(getActivity(), e.getMessage());
+			}
+
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			try {
+				instantiateChart();
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+//			Toast.makeText(
+//					getActivity(),
+//					"If chart says No chart data available just toutch the chart to load them",
+//					Toast.LENGTH_SHORT).show();
+			loading.setVisibility(View.GONE);
+			layout.setClickable(true);
+			adapter = new MyAdapter(getActivity(), getResources()
+					.getIdentifier("simple_list_item_1", "layout",
+							getActivity().getPackageName()), 0, listOfCheckins);
+			checkInList.setAdapter(adapter);
+
+		}
+
+		@Override
+		protected void onPreExecute() {
+			loading.setVisibility(View.VISIBLE);
+			layout.setClickable(false);
+			listOfCheckins = new ArrayList<CheckIn>();
+		}
+	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		// check if screen is on if it is then show welcome message
+		if (Constants.USERNAME.equalsIgnoreCase("")) {
+
+		} else {
+			if (Constants.SCREEN_ON) {
+				Constants.showWelcomeMsg(getActivity(), layout);
+			}
+
+		}
+
+	}
+
+	@Override
+	public void onDetach() {
+		super.onDetach();
+		// unregister the receiver
+		getActivity().unregisterReceiver(fetchData);
+		// cancel all the alarms
+		for (int x = 0; x < notificationTimeStamps.size(); x++) {
+			mAlarmManager = (AlarmManager) getActivity().getSystemService(
+					Activity.ALARM_SERVICE);
+			Intent mNotificationReceiverIntent = new Intent(
+					"org.coursera.systemmanager.fetch_data");
+			mNotificationReceiverPendingIntent1 = PendingIntent.getBroadcast(
+					getActivity(), x, mNotificationReceiverIntent,
+					PendingIntent.FLAG_UPDATE_CURRENT);
+			mAlarmManager.cancel(mNotificationReceiverPendingIntent1);
+		}
+	}
+
+	// holder class for the list view
+	static class ViewHolder {
+
+		public TextView date;
+
+	}
+
+	ViewHolder holder;
+
+	// this is the class of the adapter that shows the list of checkins
+	private class MyAdapter extends ArrayAdapter<CheckIn> {
+
+		public MyAdapter(Context context, int resource, int textViewResourceId,
+				ArrayList<CheckIn> list) {
+			super(context, resource, textViewResourceId, list);
+		}
+
+		@Override
+		public View getView(final int position, View convertView,
+				ViewGroup parent) {
+			View row = convertView;
+			if (row == null || row.getTag() == null) {
+				holder = new ViewHolder();
+				// setup the item layout view
+				LayoutInflater inflater = (LayoutInflater) getActivity()
+						.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+				row = inflater.inflate(R.layout.medication_item, parent, false);
+				holder.date = (TextView) row
+						.findViewById(R.id.title_medication);
+			} else {
+				holder = (ViewHolder) row.getTag();
+			}
+			long mills = listOfCheckins.get(position).getTime();
+			// if the patient doesn't have answer any of theirs questions else
+			// add the last check in of them
+			if (mills == -1) {
+				holder.date.setText(" - ");
+			} else {
+				holder.date.setText(convertDateToReadableDate(mills, false));
+			}
+			checkInList.setOnItemClickListener(new OnItemClickListener() {
+
+				@Override
+				public void onItemClick(AdapterView<?> parent, View view,
+						int position, long id) {
+					try {
+						createDialogForSelectedCheckin(listOfCheckins
+								.get(position));
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+			});
+			return row;
+		}
+
+	}
+
+	/**
+	 * 
+	 * Converts the provided milliseconds to a readable date in the form of Mon
+	 * 4 Jan 2014 at 18:45
+	 * 
+	 * @param mills
+	 * @return
+	 */
+	private String convertDateToReadableDate(long mills, boolean chart) {
+
+		// get the locale in order to avoid lint check in the SimpleDateFormat
+		Locale current = getResources().getConfiguration().locale;
+		// instantiate the string for the result of the date
+		String result = "";
+		if (chart) {
+			// Create a DateFormatter object for displaying date in specified
+			// format.
+			SimpleDateFormat dateFormater = new SimpleDateFormat("MMM dd",
+					current);
+			// Create a calendar object that will convert the date and time
+			// value in
+			// milliseconds to date.
+			Calendar calendar = Calendar.getInstance();
+
+			Calendar calendar1 = Calendar.getInstance();
+			calendar1.setTimeInMillis(mills);
+			if (dateFormater.format(calendar.getTime()).equalsIgnoreCase(
+					dateFormater.format(calendar1.getTime()))) {
+				SimpleDateFormat dateFormater1 = new SimpleDateFormat("HH:mm",
+						current);
+				result = dateFormater1.format(calendar1.getTime());
+				return result;
+			} else {
+				result = dateFormater.format(calendar1.getTime());
+				return result;
+			}
+		} else {
+			// Create a DateFormatter object for displaying date in specified
+			// format.
+			SimpleDateFormat dateFormater = new SimpleDateFormat(
+					"EEE dd MMM yyyy", current);
+			SimpleDateFormat timeFormater = new SimpleDateFormat("HH:mm",
+					current);
+
+			// Create a calendar object that will convert the date and time
+			// value in
+			// milliseconds to date.
+			Calendar calendar = Calendar.getInstance();
+			calendar.setTimeInMillis(mills);
+			result = dateFormater.format(calendar.getTime()) + " at "
+					+ timeFormater.format(calendar.getTime());
+			return result;
+		}
+	}
+
+	/**
+	 * Opens a dialog and prompt doctor to add a name and a description of the
+	 * medication he/she want to give to the selected patient
+	 * 
+	 */
+	private void addMedication() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+		LayoutInflater inflater = getActivity().getLayoutInflater();
+		View view = inflater.inflate(R.layout.add_medication_dialog, null);
+		builder.setView(view);
+		builder.setTitle(getString(R.string.add_medication));
+		// instantiate the views
+		final EditText title = (EditText) view.findViewById(R.id.title);
+		final EditText description = (EditText) view
+				.findViewById(R.id.description);
+		progressBar1 = (ProgressBar) view.findViewById(R.id.progressBar1);
+		progressBar1.setVisibility(View.GONE);
+
+		builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+				if (title.getText().toString().equalsIgnoreCase("")
+						|| description.getText().toString()
+								.equalsIgnoreCase("")) {
+					Toast.makeText(getActivity(),
+							getString(R.string.empty_mediaction),
+							Toast.LENGTH_LONG).show();
+				} else {
+					SELECTED_MEDICATION = new Medication(-1, title.getText()
+							.toString(), description.getText().toString(),
+							patientID);
+					if (!InternetStatus.getInstance(
+							getActivity()).isOnline(getActivity())) {
+						Toast.makeText(getActivity(), R.string.no_internet,
+								Toast.LENGTH_LONG).show();
+
+					} else {
+					new addMediaction().execute();
+					}
+				}
+				addDialog.dismiss();
+			}
+		});
+
+		builder.setNegativeButton("Cancel",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+					}
+				});
+		addDialog = builder.create();
+		addDialog.show();
+	}
+
+	/**
+	 * It will execute the add medication web service to add the selected
+	 * medication to the patient
+	 * 
+	 */
+	public class addMediaction extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				Constants.svc.addMedication(patientID,
+						SELECTED_MEDICATION.getName(),
+						SELECTED_MEDICATION.getDesciption(),
+						SELECTED_MEDICATION.getIdPatient());
+			} catch (final RetrofitError e) {
+				Constants.reportIssue(getActivity(), e.getMessage());
+				RESPONSE = e.getMessage();
+			}
+			if (RESPONSE.equalsIgnoreCase("")) {
+				Constants.reportIssue(getActivity(),
+						getString(R.string.add_medication_ok));
+				Constants.svc.sendPushPatient(patientID,
+						"New medication added", "Medication "
+								+ SELECTED_MEDICATION.getName()
+								+ " just added by your doctor");
+			} else {
+				RESPONSE = "";
+			}
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			progressBar1.setVisibility(View.GONE);
+			layout.setClickable(true);
+		}
+
+		@Override
+		protected void onPreExecute() {
+			progressBar1.setVisibility(View.VISIBLE);
+			layout.setClickable(false);
+		}
+	}
+
+	/**
+	 * Opens a dialog with the assigned medications of the patient and lets the
+	 * doctor to remove a mediaction
+	 * 
+	 */
+	private void removeMedication() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+		LayoutInflater inflater = getActivity().getLayoutInflater();
+		View view = inflater.inflate(R.layout.remove_medication_dialog, null);
+		builder.setView(view);
+		builder.setTitle(getString(R.string.assigned_medication));
+		// instantiate the views
+		list_medication = (ListView) view.findViewById(R.id.madication_list);
+
+		progressBar2 = (ProgressBar) view.findViewById(R.id.progressBar2);
+		progressBar2.setVisibility(View.GONE);
+
+		builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+				removeDialog.dismiss();
+			}
+		});
+		removeDialog = builder.create();
+		removeDialog.show();
+		getAvailableMedication();
+	}
+
+	/**
+	 * Loads the available medication of the selected patient
+	 */
+	private void getAvailableMedication() {
+		if (!InternetStatus.getInstance(
+				getActivity()).isOnline(getActivity())) {
+			Toast.makeText(getActivity(), R.string.no_internet,
+					Toast.LENGTH_LONG).show();
+
+		} else {
+		new getAvailableMeds().execute();
+		}
+	}
+
+	/**
+	 * It will execute the get medication web service to fetch the medication of
+	 * the selected the patient
+	 * 
+	 */
+	public class getAvailableMeds extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+
+			try {
+				medicationList = Constants.svc.getMedication(patientID);
+			} catch (final RetrofitError e) {
+				Constants.reportIssue(getActivity(), e.getMessage());
+			}
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			progressBar2.setVisibility(View.GONE);
+			layout.setClickable(true);
+			if (medicationList == null) {
+				Toast.makeText(getActivity(),
+						getString(R.string.no_medication), Toast.LENGTH_LONG)
+						.show();
+			} else {
+				list_medication.setAdapter(new MyAdapter2(getActivity(),
+						getResources().getIdentifier("simple_list_item_1",
+								"layout", getActivity().getPackageName()), 0,
+						medicationList));
+			}
+		}
+
+		@Override
+		protected void onPreExecute() {
+			progressBar2.setVisibility(View.VISIBLE);
+			layout.setClickable(false);
+		}
+	}
+
+	// holder class for the list view
+	static class ViewHolder2 {
+
+		public TextView name;
+
+	}
+
+	ViewHolder2 holder2;
+
+	// this is the class of the adapter that shows the list of medication
+	private class MyAdapter2 extends ArrayAdapter<Medication> {
+
+		public MyAdapter2(Context context, int resource,
+				int textViewResourceId, ArrayList<Medication> list) {
+			super(context, resource, textViewResourceId, list);
+		}
+
+		@Override
+		public View getView(final int position, View convertView,
+				ViewGroup parent) {
+			View row = convertView;
+			if (row == null || row.getTag() == null) {
+				holder2 = new ViewHolder2();
+				// setup the item layout view
+				LayoutInflater inflater = (LayoutInflater) getActivity()
+						.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+				row = inflater.inflate(R.layout.medication_item, parent, false);
+				holder2.name = (TextView) row
+						.findViewById(R.id.title_medication);
+
+			} else {
+				holder2 = (ViewHolder2) row.getTag();
+			}
+
+			// set data to each view
+			holder2.name.setText(medicationList.get(position).getName());
+			list_medication.setOnItemClickListener(new OnItemClickListener() {
+
+				@Override
+				public void onItemClick(AdapterView<?> parent, View view,
+						int position, long id) {
+					// a dialog to make sure that the doctor wants to delete
+					// this medication
+					askForDeletion(position);
+
+				}
+			});
+			return row;
+		}
+	}
+
+	/**
+	 * Open a dialog and ask the doctor if he/she is sure to delete the
+	 * medication if yes then delete the medication and update the list of
+	 * medication
+	 */
+	private void askForDeletion(final int position) {
+		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+
+		builder.setMessage(R.string.delete_medication).setTitle(
+				R.string.attention);
+		builder.setPositiveButton(R.string.yes,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						SELECTED_MEDICATION = medicationList.get(position);
+						if (!InternetStatus.getInstance(
+								getActivity()).isOnline(getActivity())) {
+							Toast.makeText(getActivity(), R.string.no_internet,
+									Toast.LENGTH_LONG).show();
+
+						} else {
+						new removeMedication().execute();
+						}
+					}
+				});
+		builder.setNegativeButton(R.string.no,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+					}
+				});
+		builder.create().show();
+	}
+
+	/**
+	 * It will execute the remove medication web service to remove theselected
+	 * medication
+	 * 
+	 */
+	public class removeMedication extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				Constants.svc.removeMedication(SELECTED_MEDICATION.getId());
+			} catch (final RetrofitError e) {
+				Constants.reportIssue(getActivity(), e.getMessage());
+				RESPONSE = e.getMessage();
+			}
+			if (RESPONSE.equalsIgnoreCase("")) {
+				removeDialog.dismiss();
+				Constants.reportIssue(getActivity(),
+						getString(R.string.remove_medication_ok));
+
+			} else {
+				RESPONSE = "";
+			}
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			progressBar2.setVisibility(View.GONE);
+			layout.setClickable(true);
+		}
+
+		@Override
+		protected void onPreExecute() {
+			progressBar2.setVisibility(View.VISIBLE);
+			layout.setClickable(false);
+		}
+	}
+
+	private void createDialogForSelectedCheckin(CheckIn object)
+			throws JSONException {
+		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+		LayoutInflater inflater = getActivity().getLayoutInflater();
+		View view = inflater.inflate(R.layout.checkin_dialog, null);
+		builder.setView(view);
+		builder.setTitle(convertDateToReadableDate(object.getTime(), false));
+		// instantiate the views
+		LinearLayout linear = (LinearLayout) view.findViewById(R.id.linear);
+		JSONArray jArr = new JSONArray(object.getRaw());
+		for (int i = 0; i < jArr.length(); i++) {
+			JSONObject jObj = jArr.getJSONObject(i);
+			View inflatedLayout = inflater.inflate(R.layout.question, null,
+					false);
+			TextView tag = (TextView) inflatedLayout.findViewById(R.id.tag);
+			TextView title = (TextView) inflatedLayout.findViewById(R.id.title);
+			TextView response = (TextView) inflatedLayout
+					.findViewById(R.id.response);
+			TextView line = (TextView) inflatedLayout.findViewById(R.id.line);
+			tag.setText(getString(R.string.question) + " "
+					+ String.valueOf(i + 1));
+			title.setText(jObj.getString("title"));
+			if (jObj.getString("id").equalsIgnoreCase("2")) {
+				if (jObj.getString("timestamp").equalsIgnoreCase("0")) {
+					response.setText(jObj.getString("response"));
+				} else {
+					response.setText(jObj.getString("response")
+							+ " at "
+							+ convertDateToReadableDate(
+									jObj.getLong("timestamp"), false));
+				}
+			} else {
+				response.setText(jObj.getString("response"));
+			}
+			if (jObj.getString("id").equalsIgnoreCase("3")) {
+				line.setVisibility(View.GONE);
+			}
+			linear.addView(inflatedLayout);
+		}
+
+		builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+
+				checkinDialog.dismiss();
+			}
+		});
+		checkinDialog = builder.create();
+		checkinDialog.show();
+	}
+
+	private void instantiateChart() throws JSONException {
+		ArrayList<Entry> valsComp1 = new ArrayList<Entry>();
+		ArrayList<Entry> valsComp2 = new ArrayList<Entry>();
+		// LineDataSet setComp1 = new LineDataSet(valsComp1,
+		// getString(R.string.first_checkin_question));
+		LineDataSet setComp1 = new LineDataSet(valsComp1,
+				"Mouth pain/Sore throat");
+		setComp1.setColor(Color.GREEN);
+		LineDataSet setComp2 = new LineDataSet(valsComp2,
+				"Stop eating/drinking");
+		setComp2.setColor(Color.RED);
+		ArrayList<String> xVals = new ArrayList<String>();
+		for (int i = 0; i < listOfCheckins.size(); i++) {
+			JSONArray jArr = new JSONArray(listOfCheckins.get(i).getRaw());
+			for (int j = 0; j < jArr.length(); j++) {
+				JSONObject jObj = jArr.getJSONObject(j);
+				if (jObj.getString("id").equalsIgnoreCase("1")) {
+					if (jObj.getString("response").equalsIgnoreCase(
+							getString(R.string.well_controlled))) {
+						Entry c1e1 = new Entry(0.1f, i);
+						valsComp1.add(c1e1);
+					} else if (jObj.getString("response").equalsIgnoreCase(
+							getString(R.string.severe))) {
+						Entry c1e2 = new Entry(0.7f, i);
+						valsComp1.add(c1e2);
+					} else if (jObj.getString("response").equalsIgnoreCase(
+							getString(R.string.moderate))) {
+						Entry c1e3 = new Entry(0.5f, i);
+						valsComp1.add(c1e3);
+					}
+				} else if (jObj.getString("id").equalsIgnoreCase("3")) {
+					if (jObj.getString("response").equalsIgnoreCase(
+							getString(R.string.no))) {
+						Entry c1e1 = new Entry(0.0f, i);
+						valsComp2.add(c1e1);
+					} else if (jObj.getString("response").equalsIgnoreCase(
+							getString(R.string.some))) {
+						Entry c1e2 = new Entry(0.3f, i);
+						valsComp2.add(c1e2);
+					} else if (jObj.getString("response").equalsIgnoreCase(
+							getString(R.string.eat))) {
+						Entry c1e3 = new Entry(0.9f, i);
+						valsComp2.add(c1e3);
+					}
+				}
+			}
+
+			xVals.add(convertDateToReadableDate(
+					listOfCheckins.get(i).getTime(), true));
+		}
+		ArrayList<LineDataSet> dataSets = new ArrayList<LineDataSet>();
+		dataSets.add(setComp1);
+		dataSets.add(setComp2);
+		LineData data = new LineData(xVals, dataSets);
+
+		chart.setDescription("Pain chart of " + patientProfile.getName() + " "
+				+ patientProfile.getSurname());
+		chart.setData(data);
+		chart.fitScreen();
+
+	}
+
+	private void toastTheSelectedValue(float value) {
+		if (value == 0.0f) {
+			Toast.makeText(getActivity(), getString(R.string.no),
+					Toast.LENGTH_SHORT).show();
+		} else if (value == 0.1f) {
+			Toast.makeText(getActivity(), getString(R.string.well_controlled),
+					Toast.LENGTH_SHORT).show();
+		} else if (value == 0.3f) {
+			Toast.makeText(getActivity(), getString(R.string.some),
+					Toast.LENGTH_SHORT).show();
+		} else if (value == 0.5f) {
+			Toast.makeText(getActivity(), getString(R.string.moderate),
+					Toast.LENGTH_SHORT).show();
+		} else if (value == 0.7f) {
+			Toast.makeText(getActivity(), getString(R.string.severe),
+					Toast.LENGTH_SHORT).show();
+		} else if (value == 0.9f) {
+			Toast.makeText(getActivity(), getString(R.string.eat),
+					Toast.LENGTH_SHORT).show();
+		}
+	}
+
+	private void createAlarmManager() {
+		JSONArray jArr = null;
+		try {
+			jArr = new JSONArray(patientProfile.getNotifyTime());
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		amountOfAlerts = jArr.length();
+		for (int x = 0; x < notificationTimeStamps.size(); x++) {
+			// one hour * the notify time of the patient + 5 mins to give the
+			// patient time to execute the check up
+			long REFRESH_RATE = notificationTimeStamps.get(x) + (5 * 60 * 1000);
+			mAlarmManager = (AlarmManager) getActivity().getSystemService(
+					Activity.ALARM_SERVICE);
+			Intent mNotificationReceiverIntent = new Intent(
+					"org.coursera.systemmanager.fetch_data");
+			mNotificationReceiverPendingIntent1 = PendingIntent.getBroadcast(
+					getActivity(), x, mNotificationReceiverIntent,
+					PendingIntent.FLAG_UPDATE_CURRENT);
+			mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+					SystemClock.elapsedRealtime() + REFRESH_RATE, REFRESH_RATE,
+					mNotificationReceiverPendingIntent1);
+		}
+	}
+
+	private void fillNotificationTimeStamps(String json) throws JSONException {
+		notificationTimeStamps = new ArrayList<Long>();
+		JSONArray jArr = new JSONArray(json);
+		for (int i = 0; i < jArr.length(); i++) {
+			JSONObject jObj = jArr.getJSONObject(i);
+			notificationTimeStamps.add(jObj.getLong("time"));
+		}
+	}
+
+}

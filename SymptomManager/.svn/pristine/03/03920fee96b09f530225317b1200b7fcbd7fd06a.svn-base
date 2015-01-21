@@ -1,0 +1,212 @@
+package org.coursera.symptommanager.broadcastReceivers;
+
+import java.util.Calendar;
+
+import org.coursera.symptommanager.Constants;
+import org.coursera.symptommanager.objects.PatientDetail;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.util.Log;
+
+public class NotifyDoctorForPain extends BroadcastReceiver {
+	
+	// the name of the shared preferences
+	String ID = "symptomMngr";
+	// the parameter for the severe pain
+	String SEVERE = "severe";
+	// the parameter for the moderate pain
+	String MODERATE = "moderate";
+	// the parameter for the cant_eat pain
+	String CANT_EAT = "cant_eat";
+	long severe = 0;
+	long moderate = 0;
+	long cantEat = 0;
+	// the reason for the notification
+	boolean severePain = false;
+	boolean moderatePain = false;
+	boolean cantEatPain = false;
+	Context cnt;
+	Uri alarmSound;
+
+	@Override
+	public void onReceive(Context context, Intent intent) {
+		Log.i("tag", "onReceive");
+		cnt = context;
+
+		if (intent.hasExtra(SEVERE)) {
+			severe = intent.getLongExtra(SEVERE, 0);
+			if (Constants.SEVERE_PAIN != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(severe - Constants.SEVERE_PAIN);
+				if (c.get(Calendar.HOUR) >= 12) {
+					severePain = true;
+				} else {
+
+				}
+
+			} else {
+				Constants.SEVERE_PAIN = severe;
+			}
+			if (Constants.MODERATE_PAIN != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(severe - Constants.MODERATE_PAIN);
+				if (c.get(Calendar.HOUR) >= 16) {
+					moderatePain = true;
+				} else {
+
+				}
+
+			} else {
+				Constants.MODERATE_PAIN = severe;
+			}
+		}
+		if (intent.hasExtra(MODERATE)) {
+			moderate = intent.getLongExtra(MODERATE, 0);
+			if (Constants.MODERATE_PAIN != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(moderate - Constants.MODERATE_PAIN);
+				if (c.get(Calendar.HOUR) >= 16) {
+					moderatePain = true;
+				} else {
+
+				}
+
+			} else {
+				Constants.MODERATE_PAIN = moderate;
+			}
+		}
+		if (intent.hasExtra(CANT_EAT)) {
+			cantEat = intent.getLongExtra(CANT_EAT, 0);
+			if (Constants.CANT_EAT != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(cantEat - Constants.CANT_EAT);
+				if (c.get(Calendar.HOUR) >= 12) {
+					cantEatPain = true;
+				} else {
+
+				}
+
+			} else {
+				Constants.CANT_EAT = cantEat;
+			}
+			if (Constants.SEVERE_PAIN != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(cantEat - Constants.SEVERE_PAIN);
+				if (c.get(Calendar.HOUR) >= 12) {
+					severePain = true;
+				} else {
+
+				}
+
+			} else {
+				Constants.SEVERE_PAIN = cantEat;
+			}
+			if (Constants.MODERATE_PAIN != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(cantEat - Constants.MODERATE_PAIN);
+				if (c.get(Calendar.HOUR) >= 16) {
+					severePain = true;
+				} else {
+
+				}
+
+			} else {
+				Constants.MODERATE_PAIN = cantEat;
+			}
+		}
+
+		if (!intent.hasExtra(MODERATE) && !intent.hasExtra(SEVERE)
+				&& !intent.hasExtra(CANT_EAT)) {
+			if (Constants.MODERATE_PAIN != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(Calendar.getInstance().getTimeInMillis()
+						- Constants.MODERATE_PAIN);
+				if (c.get(Calendar.HOUR) >= 16) {
+					moderatePain = true;
+				} else {
+
+				}
+			}
+			if (Constants.CANT_EAT != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(Calendar.getInstance().getTimeInMillis()
+						- Constants.CANT_EAT);
+				if (c.get(Calendar.HOUR) >= 12) {
+					cantEatPain = true;
+				} else {
+
+				}
+			}
+			if (Constants.SEVERE_PAIN != 0) {
+				Calendar c = Calendar.getInstance();
+				c.setTimeInMillis(Calendar.getInstance().getTimeInMillis()
+						- Constants.SEVERE_PAIN);
+				if (c.get(Calendar.HOUR) >= 12) {
+					severePain = true;
+				} else {
+
+				}
+			}
+
+		}
+		if (severePain || cantEatPain || moderatePain) {
+			getDoctorsIdAndSendPush();
+		}
+
+	}
+
+	private void getDoctorsIdAndSendPush() {
+		new getDoctorId().execute();
+	}
+
+	public class getDoctorId extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+
+			PatientDetail profile = Constants.svc
+					.getProfilePatient(Constants.USERNAME);
+			if (cantEatPain) {
+				Constants.svc.sendPushDoctor(profile.getIdDoctor(), "Patient "
+						+ profile.getName() + " " + profile.getSurname()
+						+ " cant eat", "Your patient " + profile.getName()
+						+ " " + profile.getSurname()
+						+ "can't eat for the past 12 hours");
+			} else if (severePain) {
+				Constants.svc
+						.sendPushDoctor(
+								profile.getIdDoctor(),
+								"Patient " + profile.getName() + " "
+										+ profile.getSurname()
+										+ " deals with severe pain",
+								"Your patient "
+										+ profile.getName()
+										+ " "
+										+ profile.getSurname()
+										+ "deals with severe pain for the past 12 hours");
+			} else if (moderatePain) {
+				Constants.svc.sendPushDoctor(profile.getIdDoctor(), "Patient "
+						+ profile.getName() + " " + profile.getSurname()
+						+ " deals with moderate pain", "Your patient "
+						+ profile.getName() + " " + profile.getSurname()
+						+ "deals with moderate pain for the past 16 hours");
+			}
+
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+
+		}
+
+		@Override
+		protected void onPreExecute() {
+		}
+	}
+
+}

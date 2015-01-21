@@ -1,0 +1,267 @@
+package org.coursera.symptommanager.patientUI;
+
+import org.coursera.symptommanager.Constants;
+import org.coursera.symptommanager.LoginScreenActivity;
+import org.coursera.symptommanager.R;
+import org.coursera.symptommanager.objects.DoctorDetail;
+import org.coursera.symptommanager.objects.PatientDetail;
+
+import retrofit.RetrofitError;
+import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Intent;
+import android.content.SharedPreferences.Editor;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.Toast;
+
+public class MainPatient extends Activity {
+
+	// the parameter for the username
+	String USERNAME = "username";
+	// the parameter for the password
+	String PASSWORD = "password";
+	// the parameter for the server
+	String SERVER = "server";
+	// the parameter for the role of the user
+	String ROLE = "role";
+	// the profile of the current patient
+	PatientDetail profile;
+	// the profile of the current patient's doctor
+	DoctorDetail doctorProfile;
+	// the parameter id
+	String ID = "id";
+	// the progress bar inside the add medication dialog
+	ProgressBar progressBar1;
+	RelativeLayout layout;
+	Button button1;
+	Button button2;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main_patient);
+
+		layout = (RelativeLayout) findViewById(R.id.layout);
+		progressBar1 = (ProgressBar) findViewById(R.id.progressBar1);
+		progressBar1.setVisibility(View.GONE);
+		button1 = (Button) findViewById(R.id.button1);
+		button1.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// the application will move to the next screen using an
+				// intent with extra long the id of the selected patient in
+				// order to open the patient check in flow
+				Intent intent = new Intent(MainPatient.this,
+						StartCheckInGestures.class);
+				intent.putExtra(ID, profile.getId());
+				startActivity(intent);
+			}
+		});
+		button2 = (Button) findViewById(R.id.button2);
+		button2.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// the application will move to the next screen using an
+				// intent with extra long the id of the selected patient in
+				// order to open the patient check in flow
+				Intent intent = new Intent(MainPatient.this,
+						StartCheckInClassic.class);
+				intent.putExtra(ID, profile.getId());
+				startActivity(intent);
+			}
+		});
+		checkIfPatientHasAProfile();
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		android.view.MenuInflater inflater = getMenuInflater();
+
+		inflater.inflate(R.menu.main_patient, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// get the id of the clicked item
+		int itemId = item.getItemId();
+		// get the id of the call_doctor button
+		int call = R.id.call_doctor;
+		// get the id of the email_doctor button
+		int email = R.id.email_doctor;
+		// get the id of the edit_profile button
+		int editProfile = R.id.edit_profile;
+		// get the id of the logout button
+		int logout = R.id.logout;
+		if (itemId == call) {
+			// fetch all the patients that doesn't have an assigned doctor
+			if (doctorProfile == null
+					|| doctorProfile.getPhone().equalsIgnoreCase("")) {
+				Toast.makeText(MainPatient.this,
+						getString(R.string.no_phone_doctor), Toast.LENGTH_LONG)
+						.show();
+			} else {
+				Intent callIntent = new Intent(Intent.ACTION_CALL);
+				callIntent
+						.setData(Uri.parse("tel:" + doctorProfile.getPhone()));
+				startActivity(callIntent);
+			}
+			return true;
+		} else if (itemId == email) {
+			if (doctorProfile == null
+					|| doctorProfile.getEmail().equalsIgnoreCase("")) {
+				Toast.makeText(MainPatient.this,
+						getString(R.string.no_email_doctor), Toast.LENGTH_LONG)
+						.show();
+			} else {
+				Intent i = new Intent(Intent.ACTION_SEND);
+				i.setType("message/rfc822");
+				i.putExtra(Intent.EXTRA_EMAIL,
+						new String[] { doctorProfile.getEmail() });
+				i.putExtra(
+						Intent.EXTRA_SUBJECT,
+						"Email from " + profile.getName() + " "
+								+ profile.getSurname());
+				try {
+					startActivity(Intent.createChooser(i,
+							getString(R.string.send_email)));
+				} catch (android.content.ActivityNotFoundException ex) {
+					Toast.makeText(MainPatient.this,
+							getString(R.string.no_email_client),
+							Toast.LENGTH_SHORT).show();
+				}
+			}
+			return true;
+		} else if (itemId == editProfile) {
+			// the application will move to the next screen using an
+			// intent with extra long the id of the selected patient in
+			// order to open the patient profile screen
+			Intent intent = new Intent(MainPatient.this, EditProfile.class);
+			intent.putExtra(ID, profile.getId());
+			startActivity(intent);
+
+			return true;
+		} else if (itemId == logout) {
+			// erase shared preferences and clear static values and redirect
+			// user to login screen
+			Constants.USERNAME = "";
+			Constants.PASSWORD = "";
+			Constants.SERVER = "";
+			Constants.ROLE = "";
+			Constants.ID = -1;
+			Editor edit = Constants.settings.edit();
+			edit.putString(USERNAME, "");
+			edit.putString(PASSWORD, "");
+			edit.putString(SERVER, "");
+			edit.putString(ROLE, "");
+			edit.putLong(ID, -1);
+			edit.commit();
+			// stop alarm manager from firing alarms
+			AlarmManager mAlarmManager = (AlarmManager) MainPatient.this
+					.getSystemService(ALARM_SERVICE);
+			Intent mNotificationReceiverIntent = new Intent(
+					MainPatient.this,
+					org.coursera.symptommanager.broadcastReceivers.AlarmHandler.class);
+			PendingIntent mNotificationReceiverPendingIntent = PendingIntent
+					.getBroadcast(MainPatient.this, 0,
+							mNotificationReceiverIntent, 0);
+			mAlarmManager.cancel(mNotificationReceiverPendingIntent);
+
+			// clear back stack so the user can't navigate back
+			Intent intent = new Intent(MainPatient.this,
+					LoginScreenActivity.class);
+			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+					| Intent.FLAG_ACTIVITY_CLEAR_TASK);
+			startActivity(intent);
+			Toast.makeText(MainPatient.this, getString(R.string.logged_out),
+					Toast.LENGTH_LONG).show();
+			return true;
+		}
+
+		return super.onOptionsItemSelected(item);
+	}
+
+	/**
+	 * Runs an async task fetching the profile of the doctor
+	 */
+	private void checkIfPatientHasAProfile() {
+		new getProfile().execute();
+	}
+
+	public class getProfile extends AsyncTask<Void, Void, Void> {
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				profile = Constants.svc.getProfilePatient(Constants.account
+						.getUsername());
+				Constants.SEVERE_PAIN = profile.getSeverePain();
+				Constants.MODERATE_PAIN = profile.getModeratePain();
+				Constants.CANT_EAT = profile.getCantEat();
+				if (profile.getIdDoctor() == -1) {
+					Constants.reportIssue(MainPatient.this,
+							getString(R.string.no_doctor));
+				} else {
+					doctorProfile = Constants.svc.getDoctorProfile(profile
+							.getIdDoctor());
+				}
+				if (profile.getRegId().equalsIgnoreCase("")) {
+					Constants.reportIssue(MainPatient.this,
+							getString(R.string.please_edit_profile));
+					profile = Constants.svc.addRegIdToPatient(profile.getId(),
+							Constants.account.getRegId());
+				}
+
+			} catch (final RetrofitError e) {
+				Constants.reportIssue(MainPatient.this, e.getMessage());
+			}
+
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			getActionBar().setTitle(
+					profile.getName() + " " + profile.getSurname());
+
+			if (profile.getRegId().equalsIgnoreCase("")) {
+				Toast.makeText(MainPatient.this,
+						getString(R.string.please_edit_profile),
+						Toast.LENGTH_LONG).show();
+				openOptionsMenu();
+
+			}
+		}
+
+		@Override
+		protected void onPreExecute() {
+		}
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		// check if screen is on if it is then show welcome message
+		if (Constants.USERNAME.equalsIgnoreCase("")) {
+
+		} else {
+			if (Constants.SCREEN_ON) {
+				Constants.showWelcomeMsg(MainPatient.this, layout);
+			}
+
+		}
+	}
+
+}

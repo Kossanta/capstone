@@ -1,0 +1,160 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".LoginScreenActivity"
+    
+    android:background="@drawable/back" >
+
+    <RelativeLayout
+        android:id="@+id/layout"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" >
+
+        <TextView
+            android:id="@+id/titleServer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/activity_horizontal_margin"
+            android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_marginTop="@dimen/activity_vertical_margin"
+            android:text="@string/title_server"
+            android:textAppearance="@android:style/TextAppearance.Medium"
+            android:textStyle="italic" />
+
+        <TextView
+            android:id="@+id/line1"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_below="@+id/titleServer"
+            android:layout_marginLeft="@dimen/activity_horizontal_space"
+            android:layout_marginRight="@dimen/activity_horizontal_space"
+            android:layout_marginTop="@dimen/activity_vertical_space"
+            android:background="@color/black" />
+
+        <TextView
+            android:id="@+id/https"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/server"
+            android:layout_alignTop="@+id/server"
+            android:layout_below="@+id/line1"
+            android:layout_marginLeft="@dimen/activity_horizontal_margin"
+            android:layout_marginTop="@dimen/activity_vertical_space"
+            android:gravity="center_vertical"
+            android:text="@string/https"
+            android:textAppearance="@android:style/TextAppearance.Medium" />
+
+        <TextView
+            android:id="@+id/port"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/server"
+            android:layout_marginLeft="@dimen/activity_horizontal_margin"
+            android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_marginTop="@dimen/activity_vertical_space"
+            android:text="@string/port"
+            android:textAppearance="@android:style/TextAppearance.Medium" />
+
+        <EditText
+            android:id="@+id/server"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/line1"
+            android:layout_marginTop="@dimen/activity_vertical_space"
+            android:layout_toLeftOf="@+id/info"
+            android:layout_toRightOf="@+id/https"
+            android:ems="10"
+            android:hint="@string/hint_server"
+            android:singleLine="true" >
+
+            <requestFocus />
+        </EditText>
+
+        <ImageView
+            android:id="@+id/info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/server"
+            android:layout_alignRight="@+id/line1"
+            android:layout_alignTop="@+id/server"
+            android:clickable="true"
+            android:src="@android:drawable/ic_menu_info_details" />
+
+        <TextView
+            android:id="@+id/titleCredentials"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/port"
+            android:layout_marginLeft="@dimen/activity_horizontal_margin"
+            android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_marginTop="@dimen/activity_vertical_margin"
+            android:text="@string/title_credentials"
+            android:textAppearance="@android:style/TextAppearance.Medium"
+            android:textStyle="italic" />
+
+        <TextView
+            android:id="@+id/line2"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_below="@+id/titleCredentials"
+            android:layout_marginLeft="@dimen/activity_horizontal_space"
+            android:layout_marginRight="@dimen/activity_horizontal_space"
+            android:layout_marginTop="@dimen/activity_vertical_space"
+            android:background="@color/black" />
+
+        <Spinner
+            android:id="@+id/userName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/switch1"
+            android:layout_marginLeft="@dimen/activity_horizontal_space"
+            android:layout_marginRight="@dimen/activity_horizontal_space"
+            android:layout_marginTop="@dimen/activity_horizontal_space" />
+
+        <EditText
+            android:id="@+id/password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/userName"
+            android:layout_marginLeft="@dimen/activity_horizontal_space"
+            android:layout_marginRight="@dimen/activity_horizontal_space"
+            android:layout_marginTop="@dimen/activity_horizontal_space"
+            android:ems="10"
+            android:hint="@string/hint_password"
+            android:inputType="textPassword" />
+
+        <Button
+            android:id="@+id/loginButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/password"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="35dp"
+            android:text="Login" />
+
+        <Switch
+            android:id="@+id/switch1"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_below="@+id/line2"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="@dimen/activity_horizontal_margin"
+            android:textOff="@string/patient"
+            android:textOn="@string/doctor" />
+
+
+            <ProgressBar
+                android:id="@+id/progressBar1"
+                style="@android:style/Widget.Holo.Light.ProgressBar.Large"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:visibility="visible" />
+    </RelativeLayout>
+
+</ScrollView>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="-40dp"
+    android:orientation="vertical" 
+    android:background="@drawable/back">
+
+
+ 
+    <TextView
+        android:id="@+id/title_medication"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/title_medication"
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+          android:layout_marginRight="@dimen/activity_horizontal_margin"
+        android:layout_marginTop="@dimen/activity_vertical_margin"
+        android:textAppearance="@android:style/TextAppearance.Medium" />
+       <TextView
+        android:id="@+id/line"
+        android:layout_width="300dp"
+        android:layout_height="1dp"
+        android:layout_below="@+id/title_medication"
+        android:layout_marginLeft="@dimen/activity_horizontal_space"
+        android:layout_marginTop="@dimen/activity_vertical_margin"
+        android:background="#000000" />
+     <EditText
+            android:id="@+id/title"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/line"
+            android:layout_marginLeft="@dimen/activity_horizontal_margin"
+             android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_marginTop="@dimen/activity_vertical_margin"
+            android:ems="10"
+            android:hint="@string/hint_name"
+            android:singleLine="true" />
+
+
+   <EditText
+            android:id="@+id/description"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/title"
+            android:layout_marginLeft="@dimen/activity_horizontal_margin"
+             android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_marginTop="@dimen/activity_vertical_space"
+            android:ems="10"
+             android:inputType="textMultiLine"
+            android:isScrollContainer="true"
+            android:maxHeight="120dp"
+            android:hint="@string/hint_description"
+            android:singleLine="true" />
+
+  <ProgressBar
+        android:id="@+id/progressBar1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        style="@android:style/Widget.Holo.Light.ProgressBar.Large"
+        android:visibility="visible" />
+
+</RelativeLayout>

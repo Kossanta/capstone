@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content" >
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/activity_horizontal_space"
+        android:layout_marginRight="@dimen/activity_horizontal_space"
+        android:layout_marginTop="@dimen/activity_vertical_space"
+        android:maxLines="2"
+        android:text="addsdasdsd sdsdsd"
+        android:textAppearance="@android:style/TextAppearance.Medium" />
+
+    <TextView
+        android:id="@+id/last_checkin"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignBottom="@+id/menu"
+        android:layout_alignTop="@+id/menu"
+        android:layout_marginLeft="@dimen/activity_horizontal_space"
+        android:layout_toLeftOf="@+id/menu"
+        android:gravity="center_vertical"
+        android:maxLines="2"
+        android:text="dasdsdsadasdasdasdasdasd"
+        android:textAppearance="@android:style/TextAppearance.Medium"
+        android:textColor="@color/gray"
+        android:textStyle="italic" />
+
+    <Button
+        android:id="@+id/menu"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/name"
+        android:layout_marginRight="@dimen/activity_horizontal_space"
+        android:background="@drawable/ic_action_overflow"
+        android:contentDescription="@string/action_menu_btn"
+        android:focusable="false" />
+
+</RelativeLayout>

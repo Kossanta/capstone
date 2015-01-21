@@ -1,0 +1,82 @@
+package org.coursera.symptommanager;
+
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.support.v4.app.NotificationCompat;
+
+import com.google.android.gcm.GCMBaseIntentService;
+/**
+ * 
+ * This is the service that will handle the push notifications.
+ *
+ */
+public class GCMIntentService extends GCMBaseIntentService {
+
+	Context cnt;
+	String message;
+	String csrf;
+	int nor = -1;
+
+	@Override
+	protected boolean onRecoverableError(Context context, String errorId) {
+		
+		return super.onRecoverableError(context, errorId);
+	}
+
+	public GCMIntentService() {
+		super(Constants.project_id);
+	}
+
+	@Override
+	protected void onError(Context arg0, String error) {
+		
+
+	}
+	Uri alarmSound;
+	private long[] mVibratePattern = { 0, 200, 200, 300 };
+	@Override
+	protected void onMessage(Context context, Intent intent) {
+	
+		String message = intent.getStringExtra("message");
+		String title = intent.getStringExtra("title");
+		alarmSound = RingtoneManager
+				.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+		NotificationManager mNotificationManager = (NotificationManager) this
+				.getSystemService(Context.NOTIFICATION_SERVICE);
+
+		PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+				new Intent(this, Splash.class), 0);
+
+		NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(
+				this).setAutoCancel(true)
+		//		.setSmallIcon(android.R.drawable.ic_dialog_alert)
+					.setSmallIcon(R.drawable.alert)
+					.setTicker(title)
+				.setContentTitle(getString(R.string.app_name))
+				.setStyle(
+						new NotificationCompat.BigTextStyle().bigText(message))
+				.setContentText(message).setVibrate(mVibratePattern).setSound(alarmSound);
+
+		mBuilder.setContentIntent(contentIntent);
+		mNotificationManager.notify(1, mBuilder.build());
+
+	}
+
+	@Override
+	protected void onRegistered(Context context, String regId) {
+		
+		Constants.regId = regId;
+	}
+
+	@Override
+	protected void onUnregistered(Context context, String regId) {
+		
+
+	}
+
+
+}

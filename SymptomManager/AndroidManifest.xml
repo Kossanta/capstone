@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.coursera.symptommanager"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <!--
+    Here we declare the version of the Android API 
+    that the application will be available 
+    if we uploaded to the Play Store (will be available from API 14 to API 21)
+    -->
+
+    <uses-sdk
+        android:minSdkVersion="16"
+        android:targetSdkVersion="21" />
+
+    <!--
+    Here we declare the screen sizes that the 
+    application will be available if we uploaded to the Play Store 
+    (will be available for normal screens devices aka phones)
+    -->
+
+    <supports-screens
+        android:largeScreens="false"
+        android:normalScreens="true"
+        android:smallScreens="false"
+        android:xlargeScreens="false" />
+
+     <!-- optional permission to get country from phone -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Here we will specify all the permission for the application -->
+    <!-- The permission to make the application use the internet -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- GCM requires a Google account -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <!-- Keeps the processor from sleeping when a message is received -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- permissions for GCM Messaging -->
+    <!-- can register and receive messages -->
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+    <!-- Creates a custom permission so only this app can receive its messages -->
+    <uses-permission android:name="org.coursera.symptommanager.permission.C2D_MESSAGE" />
+    <!-- The permission so the application can access the vibrator of the device -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- In order to access the phone dialer you must use the call_phone permission -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+<!--  In order to be able to check for the wifi connectivity -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+
+    <permission
+        android:name="org.coursera.symptommanager.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/app_theme" >
+
+        <!-- Now we will declare all the activities the user might navigate through -->
+
+
+        <!--
+        This is the first activity the application 
+        will run if we open it because we add an intent-filter 
+        with action MAIN and category LAUNCHER 
+        With the noHistory attribute we make this activity disappear 
+        from the activity back stack because we don't want the user 
+        to return to Splash activity if the presses the back button 
+        from the next activity
+        -->
+        <activity
+            android:name=".Splash"
+            android:label="@string/app_name"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Holo.Light.NoActionBar"
+            android:screenOrientation="portrait" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="org.coursera.symptommanager.action_symptom_manager" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".LoginScreenActivity"
+            android:label="@string/app_name"
+            android:noHistory="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/app_theme"
+            android:windowSoftInputMode="adjustPan" >
+        </activity>
+        <activity
+            android:name="org.coursera.symptommanager.doctorUI.MainDoctor"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/app_theme"
+            android:windowSoftInputMode="stateHidden|adjustPan" >
+        </activity>
+        <activity
+            android:name="org.coursera.symptommanager.doctorUI.SelectedPatient"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/app_theme"
+            android:windowSoftInputMode="adjustPan" >
+        </activity>
+        <activity
+            android:name="org.coursera.symptommanager.doctorUI.EditProfile"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/app_theme"
+            android:windowSoftInputMode="adjustPan" >
+        </activity>
+        <activity
+            android:name="org.coursera.symptommanager.patientUI.MainPatient"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/app_theme"
+            android:windowSoftInputMode="adjustPan" >
+        </activity>
+        <activity
+            android:name="org.coursera.symptommanager.patientUI.EditProfile"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/app_theme"
+            android:windowSoftInputMode="adjustPan" >
+        </activity>
+        <activity
+            android:name="org.coursera.symptommanager.patientUI.StartCheckInClassic"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/app_theme"
+            android:windowSoftInputMode="adjustPan" >
+        </activity>
+        <activity
+            android:name="org.coursera.symptommanager.patientUI.StartCheckInGestures"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/app_theme"
+            android:windowSoftInputMode="adjustPan" >
+        </activity>
+
+        <!--
+          BroadcastReceiver that will receive intents from GCM
+          services and handle them to the custom IntentService.
+
+          The com.google.android.c2dm.permission.SEND permission is necessary
+          so only GCM services can send data messages for the app.
+        -->
+        <receiver
+            android:name="com.google.android.gcm.GCMBroadcastReceiver"
+            android:permission="com.google.android.c2dm.permission.SEND" >
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+
+                <category android:name="org.coursera.symptommanager" />
+            </intent-filter>
+        </receiver>
+        <!-- The broadcast receiver that will handles the alarms for the patient to the specified time -->
+        <receiver android:name="org.coursera.symptommanager.broadcastReceivers.AlarmHandler" >
+        </receiver>
+        <!-- The broadcast receiver that will handles the alarms for the patient to inform his/hers doctor if the patient deals with 12 hours of severe paint or 12 hours of cant eat or 16 hours of moderate -->
+        <receiver android:name="org.coursera.symptommanager.broadcastReceivers.NotifyDoctorForPain" >
+        </receiver>
+        <!--
+          Application-specific subclass of GCMBaseIntentService that will
+          handle received messages.
+
+          By default, it must be named .GCMIntentService, unless the
+          application uses a custom BroadcastReceiver that redefines its name.
+        -->
+        <service android:name=".GCMIntentService" />
+        <!-- The service that will handle screen on/off events -->
+        <service android:name="org.coursera.symptommanager.services.ScreenReceiverService" />
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+    </application>
+
+</manifest>
