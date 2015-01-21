@@ -1,0 +1,26 @@
+package org.coursera.capstone.symptom.repository;
+
+import java.util.ArrayList;
+
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
+
+/**
+ * TODO
+ * An interface for a repository that can store Video objects and allow them to
+ * be searched by title.
+ * 
+ * @author jules
+ * 
+ */
+@Repository
+public interface PatientDetailRepository extends CrudRepository<PatientDetail, Long> {
+
+	// Find all videos with a matching title (e.g., Video.name)
+	public PatientDetail findByUsername(String username);
+
+	// Find all videos with a duration less than the given duation (e.g.,
+	// Video.duration)
+	public ArrayList<PatientDetail> findByIdDoctor(long idDoctor);
+	public PatientDetail findByRegId(String regId);
+}

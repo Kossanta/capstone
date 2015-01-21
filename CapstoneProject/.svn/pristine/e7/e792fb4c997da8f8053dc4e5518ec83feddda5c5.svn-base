@@ -1,0 +1,338 @@
+/*
+ * 
+ * Copyright 2014 Jules White
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * 
+ */
+
+package org.coursera.capstone.symptom.controllers;
+
+import java.io.IOException;
+import java.util.ArrayList;
+
+import javax.servlet.http.HttpServletResponse;
+
+import org.coursera.capstone.symptom.Application;
+import org.coursera.capstone.symptom.Constants;
+import org.coursera.capstone.symptom.push.Post2Gcm;
+import org.coursera.capstone.symptom.repository.Account;
+import org.coursera.capstone.symptom.repository.CheckIn;
+import org.coursera.capstone.symptom.repository.CheckInRepository;
+import org.coursera.capstone.symptom.repository.DoctorDetail;
+import org.coursera.capstone.symptom.repository.DoctorDetailRepository;
+import org.coursera.capstone.symptom.repository.PatientDetail;
+import org.coursera.capstone.symptom.repository.PatientDetailRepository;
+import org.coursera.capstone.symptom.repository.Medication;
+import org.coursera.capstone.symptom.repository.MedicationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+@Controller
+@RequestMapping(Constants.DOCTOR_SVC_PATH)
+public class DoctorController {
+
+	final String GET_DOCTOR_PROFILE = "/{username}/getDoctorProfile";
+	final String UPDATE_DOCTOR_PROFILE = "/updateDoctorProfile";
+	final String CREATE_DOCTOR_PROFILE = "/createDoctorProfile";
+
+	final String GET_PATIENT_LIST = "/{id}/getPatientList";
+
+	final String UDATE_PATIENT_PROFILE = "/{id}/updateProfilePatient/{id2}";
+
+	final String GET_AVAILABLE_PATIENTS = "/getAvailablePatients";
+
+	final String GET_PATIENTS_CHECKINS = "/getCheckins/{id}";
+
+	final String GET_PATIENT_PROFILE = "/getPatientProfile/{id}";
+
+	final String ADD_MEDICATION = "/addMedication";
+
+	final String REMOVE_MEDICATION = "/removeMedication/{id}";
+
+	final String SEND_PUSH_2_PATIENT = "/sendPush/{id}";
+	final String REGID_PARAMETER = "regId";
+	// the path for population of the tablet doctor's details with all the
+	// available
+	// users which are hard coded
+	final String POPULATE_DOCTOR_DETAILS_TABLE = "/populateDoctors";
+	// The path to add the registration id of the device for the push
+	// notification to the doctor account
+	final String ADD_REGID = "/addRegId";
+	@Autowired
+	private CheckInRepository checkInRepo;
+	@Autowired
+	private DoctorDetailRepository doctorDetailRepo;
+	@Autowired
+	private PatientDetailRepository patientDetailRepo;
+	@Autowired
+	private MedicationRepository pillRepo;
+
+	/**
+	 * You will need to create one or more Spring controllers to fulfill the
+	 * requirements of the assignment. If you use this file, please rename it to
+	 * something other than "AnEmptyController"
+	 * 
+	 * 
+	 * ________ ________ ________ ________ ___ ___ ___ ________ ___ __ |\
+	 * ____\|\ __ \|\ __ \|\ ___ \ |\ \ |\ \|\ \|\ ____\|\ \|\ \ \ \ \___|\ \
+	 * \|\ \ \ \|\ \ \ \_|\ \ \ \ \ \ \ \\\ \ \ \___|\ \ \/ /|_ \ \ \ __\ \ \\\
+	 * \ \ \\\ \ \ \ \\ \ \ \ \ \ \ \\\ \ \ \ \ \ ___ \ \ \ \|\ \ \ \\\ \ \ \\\
+	 * \ \ \_\\ \ \ \ \____\ \ \\\ \ \ \____\ \ \\ \ \ \ \_______\ \_______\
+	 * \_______\ \_______\ \ \_______\ \_______\ \_______\ \__\\ \__\
+	 * \|_______|\|_______|\|_______|\|_______|
+	 * \|_______|\|_______|\|_______|\|__| \|__|
+	 * 
+	 * 
+	 */
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = GET_DOCTOR_PROFILE, method = RequestMethod.GET)
+	public @ResponseBody
+	DoctorDetail getProfileDoctor(@PathVariable("username") String username,
+			HttpServletResponse response) throws IOException {
+		if (doctorDetailRepo.findByUsername(username) == null) {
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			return null;
+		} else {
+			response.setStatus(HttpServletResponse.SC_OK);
+			return doctorDetailRepo.findByUsername(username);
+		}
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = CREATE_DOCTOR_PROFILE, method = RequestMethod.POST)
+	public @ResponseBody
+	DoctorDetail createProfileDoctor(@RequestBody DoctorDetail details,
+			HttpServletResponse response) throws IOException {
+		doctorDetailRepo.save(details);
+		return doctorDetailRepo.findByUsername(details.getUsername());
+	}
+
+	/**
+	 * 
+	 */
+	@RequestMapping(value = POPULATE_DOCTOR_DETAILS_TABLE, method = RequestMethod.POST)
+	public ResponseEntity<Void> populateDoctorsProfiles(
+			@RequestBody ArrayList<DoctorDetail> list,
+			HttpServletResponse response) {
+		if (doctorDetailRepo.findByUsername("drJohn") == null) {
+			for (int i = 0; i < list.size(); i++) {
+				doctorDetailRepo.save(list.get(i));
+			}
+		} else {
+
+		}
+		return new ResponseEntity<Void>(HttpStatus.OK);
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = UPDATE_DOCTOR_PROFILE, method = RequestMethod.POST)
+	public @ResponseBody
+	DoctorDetail updateProfileDoctor(@RequestBody DoctorDetail details,
+			HttpServletResponse response) throws IOException {
+		DoctorDetail oldProfile = doctorDetailRepo.findByUsername(details
+				.getUsername());
+		doctorDetailRepo.delete(oldProfile);
+		doctorDetailRepo.save(details);
+		return doctorDetailRepo.findByUsername(details.getUsername());
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = GET_PATIENT_LIST, method = RequestMethod.GET)
+	public @ResponseBody
+	ArrayList<PatientDetail> getPatientList(@PathVariable("id") long id,
+			HttpServletResponse response) throws IOException {
+		response.setStatus(HttpServletResponse.SC_OK);
+		return patientDetailRepo.findByIdDoctor(id);
+
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = UDATE_PATIENT_PROFILE, method = RequestMethod.GET)
+	public ResponseEntity<Void> addPatient(@PathVariable("id") long idDoctor,
+			@PathVariable("id2") long idPatient) throws IOException {
+		PatientDetail profile = patientDetailRepo.findOne(idPatient);
+		patientDetailRepo.delete(profile);
+		profile.setIdDoctor(idDoctor);
+		patientDetailRepo.save(profile);
+		return new ResponseEntity<Void>(HttpStatus.OK);
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = GET_AVAILABLE_PATIENTS, method = RequestMethod.GET)
+	public @ResponseBody
+	ArrayList<PatientDetail> getAvailablePatients(HttpServletResponse response)
+			throws IOException {
+		if (patientDetailRepo.findByIdDoctor(-1) == null) {
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			return null;
+		} else {
+			return patientDetailRepo.findByIdDoctor(-1);
+		}
+
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = GET_PATIENTS_CHECKINS, method = RequestMethod.GET)
+	public @ResponseBody
+	ArrayList<CheckIn> getCheckins(@PathVariable("id") long id,
+			HttpServletResponse response) throws IOException {
+		if (checkInRepo.findByIdPatient(id) == null) {
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			return null;
+		} else {
+			return checkInRepo.findByIdPatient(id);
+		}
+
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = GET_PATIENT_PROFILE, method = RequestMethod.GET)
+	public @ResponseBody
+	PatientDetail getPatientProfile(@PathVariable("id") long id,
+			HttpServletResponse response) throws IOException {
+		if (patientDetailRepo.findOne(id) == null) {
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			return null;
+		} else {
+			response.setStatus(HttpServletResponse.SC_OK);
+			return patientDetailRepo.findOne(id);
+		}
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = ADD_MEDICATION, method = RequestMethod.POST)
+	public @ResponseBody
+	ResponseEntity<Void> addMedication(@RequestParam("id") long id,
+			@RequestParam("name") String name,
+			@RequestParam("description") String description,
+			@RequestParam("idPatient") long idPatient) {
+		ArrayList<Medication> pills;
+		pills = pillRepo.findByIdPatient(id);
+		for (int i = 0; i < pills.size(); i++) {
+			if (name.equalsIgnoreCase(pills.get(i).getName())) {
+
+				return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+
+			}
+		}
+		pillRepo.save(new Medication(name, description, idPatient));
+		return new ResponseEntity<Void>(HttpStatus.OK);
+
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = REMOVE_MEDICATION, method = RequestMethod.POST)
+	public @ResponseBody
+	ResponseEntity<Void> removeMedication(@PathVariable("id") long id)
+			throws IOException {
+		if (pillRepo.findById(id) == null) {
+
+			return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+		} else {
+			pillRepo.delete(pillRepo.findById(id));
+			return new ResponseEntity<Void>(HttpStatus.OK);
+		}
+	}
+
+	/**
+	 * 
+	 * TODO
+	 */
+	@RequestMapping(value = SEND_PUSH_2_PATIENT, method = RequestMethod.POST)
+	public ResponseEntity<Void> sendPushPatient(@PathVariable("id") long id,
+			@RequestParam("title") String title,
+			@RequestParam("message") String message) {
+		if (patientDetailRepo.findOne(id) == null) {
+			return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
+		} else {
+			Post2Gcm.post(Constants.APIKEY, Application.createContent(
+					patientDetailRepo.findOne(id).getRegId(), title, message));
+			return new ResponseEntity<Void>(HttpStatus.OK);
+		}
+	}
+
+	/**
+	 * TODO
+	 */
+	@RequestMapping(value = ADD_REGID, method = RequestMethod.POST)
+	public @ResponseBody
+	DoctorDetail addRegIdToDactor(@RequestParam("id") long id,
+			@RequestParam(REGID_PARAMETER) String regId,
+			HttpServletResponse response) {
+		if (doctorDetailRepo.findOne(id) == null) {
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			return null;
+		} else {
+			doctorDetailRepo.findOne(id).setRegId(regId);
+			response.setStatus(HttpServletResponse.SC_OK);
+			return doctorDetailRepo.findOne(id);
+		}
+	}
+	// @RequestMapping(value = Constants.FIND_USER, method = RequestMethod.GET)
+	// public @ResponseBody
+	// Account findUserAccount(@PathVariable("name") String name,
+	// HttpServletResponse response) throws IOException {
+	// if (accountRepo.findByUsername(name) == null) {
+	// response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+	// return null;
+	// } else {
+	// response.setStatus(HttpServletResponse.SC_OK);
+	// return accountRepo.findByUsername(name);
+	//
+	// }
+	// }
+	//
+	//
+	//
+
+}

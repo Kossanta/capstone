@@ -1,0 +1,101 @@
+package org.coursera.capstone.symptom.repository;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
+public class Account {
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private long id;
+
+	private String username;
+	private String password;
+	private String regId;
+	private String role;
+
+	public Account() {
+	}
+
+	public Account(String username, String password, String regId, String role) {
+		super();
+		this.username = username;
+		this.password = password;
+		this.regId = regId;
+		this.role = role;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getRegId() {
+		return regId;
+	}
+
+	public void setRegId(String regId) {
+		this.regId = regId;
+	}
+
+	public long getId() {
+		return id;
+	}
+
+	public void setId(long id) {
+		this.id = id;
+	}
+
+	public String getRole() {
+		return role;
+	}
+
+	public void setRole(String role) {
+		this.role = role;
+	}
+	//
+	// /**
+	// * Two Videos will generate the same hashcode if they have exactly the
+	// same
+	// * values for their name, url, and duration.
+	// *
+	// */
+	// @Override
+	// public int hashCode() {
+	// // Google Guava provides great utilities for hashing
+	// return Objects.hashCode(name, url, duration);
+	// }
+	//
+	// /**
+	// * Two Videos are considered equal if they have exactly the same values
+	// for
+	// * their name, url, and duration.
+	// *
+	// */
+	// @Override
+	// public boolean equals(Object obj) {
+	// if (obj instanceof Video) {
+	// Video other = (Video) obj;
+	// // Google Guava provides great utilities for equals too!
+	// return Objects.equal(name, other.name)
+	// && Objects.equal(url, other.url)
+	// && duration == other.duration;
+	// } else {
+	// return false;
+	// }
+	// }
+
+}

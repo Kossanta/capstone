@@ -1,0 +1,95 @@
+package org.coursera.capstone.symptom.push;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.protocol.HTTP;
+
+import com.google.gson.Gson;
+
+public class Post2Gcm {
+
+	public static void post(String apiKey, Content content) {
+
+		try {
+
+//			// 1. URL
+//			URL url = new URL("https://android.googleapis.com/gcm/send");
+			 // Create the POST object and add the parameters
+			Gson gson = new Gson();
+			String json = gson.toJson(content);
+		    HttpPost httpPost = new HttpPost("https://android.googleapis.com/gcm/send");
+		    httpPost.setHeader("Authorization", "key=" + apiKey);
+		    StringEntity entity = new StringEntity(json, HTTP.UTF_8);
+		    entity.setContentType("application/json");
+		    httpPost.setEntity(entity);
+
+		    HttpClient client = new DefaultHttpClient();
+		    HttpResponse response = client.execute(httpPost);
+		    BufferedReader reader = new BufferedReader(new InputStreamReader(
+					response.getEntity().getContent(), "UTF-8"));
+			String json1 = reader.readLine();
+			String json2 = reader.readLine();
+//			// 2. Open connection
+//			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+//
+//			// 3. Specify POST method
+//			conn.setRequestMethod("POST");
+//			conn.setDoOutput(true);
+//			conn.setDoInput(true);
+//			// 4. Set the headers
+//			conn.setRequestProperty("Content-Type", "application/json");
+//			conn.setRequestProperty("Authorization", "key=" + apiKey);
+//			conn.setRequestProperty("Accept-Charset", "UTF-8");
+//
+//			// 5. Add JSON data into POST request body
+//
+//			// `5.1 Use Jackson object mapper to convert Contnet object into
+//			// JSON
+//		//ObjectMapper mapper = new ObjectMapper();
+//			
+//			// 5.2 Get connection output stream
+//			DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+//			Gson gson = new Gson();
+//			String json = gson.toJson(content);
+//			wr.writeChars(json.toString());
+//			// 5.3 Copy Content "JSON" into
+//			//mapper.writeValue(wr, content);
+//			// 5.4 Send the request
+//			wr.flush();
+//
+//			// 5.5 close
+//			wr.close();
+//
+//			// 6. Get the response
+//			int responseCode = conn.getResponseCode();
+//			System.out.println("\nSending 'POST' request to URL : " + url);
+//			System.out.println("Response Code : " + responseCode);
+//
+//			BufferedReader in = new BufferedReader(new InputStreamReader(
+//					conn.getInputStream()));
+//			String inputLine;
+//			StringBuffer response = new StringBuffer();
+//
+//			while ((inputLine = in.readLine()) != null) {
+//				response.append(inputLine);
+//			}
+//			in.close();
+//
+//			// 7. Print result
+//			System.out.println(response.toString());
+
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}
